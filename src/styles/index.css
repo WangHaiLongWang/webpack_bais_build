@@ -1,0 +1,23 @@
+h2 {
+  background: #4285f4;
+  color: #fff;
+}
+
+.picture div {
+  width: 300px;
+  height: 300px;
+  float: left;
+  margin: 0 5px;
+}
+
+.picture div:first-child {
+  background: url(../assets/img/mk3.jpg) no-repeat center / contain;
+}
+
+.picture div:nth-child(2) {
+  background: url(../assets/img/mk5.jpg) no-repeat center / contain;
+}
+
+.picture div:last-child {
+  background: url(../assets/img/mk6.jpg) no-repeat center / contain;
+}

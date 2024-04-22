@@ -1,3 +1,6 @@
+#### github
+https://github.com/WangHaiLongWang/webpack_basis_build
+
 #### loaders 作用
 
 loader 本质上是导出为函数的 JavaScript 模块。loader runner 会调用此函数，然后将上一个 loader 产生的结果或者资源文件传入进去。函数中的 this 作为上下文会被 webpack 填充，并且 loader runner 中包含一些实用的方法，比如可以使 loader 调用方式变为异步，或者获取 query 参数。

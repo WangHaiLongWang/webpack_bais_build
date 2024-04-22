@@ -1,3 +1,6 @@
+#### github
+https://github.com/WangHaiLongWang/webpack_basis_build
+
 #### wepback plugins作用
 在 webpack 编译时期，会为不同的编译对象初始化很多不同的 Hook，开发者们可以在编写的插件中监听，也就是用（tap，tapAsync，tapPromise）注册这些钩子，在打包的不同时期，触发（call）这些钩子，就可以在编译的过程中注入特定的逻辑，修改编译的结果来满足开发的需要。
 
@@ -34,7 +37,11 @@ module.exports = WebpackPlugin;
 
 compiler 对象在 webpack 启动时就已经被实例化，它和 compilation 实例不同，它是全局唯一的，在它的实例对象中，可以得到所有的配置信息，包括所有注册的 plugins 和 loaders
 
+整个`Compiler`完整地展现了 Webpack 的构建流程：
 
+- **准备阶段**：`make`之前做的事情都属于准备阶段，这阶段的`calback`入参以`compiler`为主；
+- **编译阶段**：这阶段以`compilation`的钩子为主，`calback`入参以`compilation`为主；
+- **产出阶段**：这阶段从`compilation`开始，最后回到`Compiler`钩子上，`calback`传入参数是跟结果相关的数据，包括`stats`、`error`。
 
 #### compilation
 每当文件发生变动时，都会有新的 compilation 实例被创建，它能够访问到所有的模块和依赖，我们可以通过一系列的钩子来访问或者修改打包的 module，assets，chunks。
@@ -52,5 +59,115 @@ compiler 对象在 webpack 启动时就已经被实例化，它和 compilation �
 |              |                                                              |                                |                 |
 
 #### log-webpack-plugin 
+在webpack的执行周期中进行打印操作
+
+```javascript
+module.exports = {
+    ...,
+    plugins: [
+        new LogWebpackPlugin({
+            emitCallback: () => { console.log('emitCallback') },
+            compilationCallback: () => { console.log('compilationCallback') },
+            doneCallback: () => { console.log('doneCallback') },
+        })
+    ]
+}
+
+class LogWebpackPlugin {
+    constructor(options) {
+        this.options = options
+    }
+    apply(compiler) {
+        compiler.hooks.emit.tap.('LogWebpackPlugin', () => {
+            this.options.emitCallback();
+        })
+        compiler.hooks.compileCallback.tap("LogWebpackPlugin", () => {
+            this.options.compilationCallback();
+        })
+        compiler.hooks.done.tap("LogWebpackPlugin", () => {
+            this.options.doneCallback();
+        })
+    }
+}
+
+```
+
 
 #### copy-rename-webpack-plugin
+copy 打包后处理的文件，到指定的目录下
+
+```javascript
+module.exports = {
+    ...,
+    plugins: [
+        new CopyWebpackPlugin({
+            entry: 'main.js',
+            output: {
+                '../copy/main1.js',
+                '../copy/main2.js',
+            }
+        })
+    ]
+}
+
+
+// 
+class CopyWebpackPlugin {
+    constructor(options) {
+        this.options = options;
+    }
+    apply(compiler) {
+        const pluginName = CopyWebpackPlugin.name;
+        const { entry, output } = this.options;
+        let fileContent = null;
+        
+        compiler.hooks.emit.tapAsync(pluginName, (compilation, callback) => {
+            const assets = compilation.getAssets();
+            assets.forEach( { name, source } => {
+                if (entry === name) {
+                    fileContent = source
+                }
+            })
+            output.forEach( (dir) => {
+                compilaction.emitAsset(dir, fileContent);
+            })
+            fileContent = null;
+            callback()
+        })
+    }
+}
+
+// 
+class CopyWebpackPluginAgain { 
+    constructor(options) {
+        this.options = options || {};
+    }
+    apply(compiler) {
+        const pluginName = CopyWebpackPlugin.name;
+        const {entry, output} = this.options;
+        let fileContent = null;
+
+        const { webpack } = compiler;
+        const { Compilation } = webpack;
+
+        compiler.hooks.thisCompilation.tap(pluginName, (compilation) => {
+            compilation.hooks.processAsset.tap({
+                name: pluginName,
+                stage: Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE,
+            }, 
+            (assets) => {
+                Object.entries(assets).forEach([name, source] => {
+                    if (entry !== name) return;
+                    fileContent = source;
+                })
+                output.forEach( dir => {
+                    compilation.emitAsset(dir, fileContent);
+                })
+            }
+            )
+        })
+    }
+}
+
+
+```
